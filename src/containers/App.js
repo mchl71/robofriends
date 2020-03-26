@@ -1,42 +1,52 @@
 import React from 'react'
+import { connect } from 'react-redux'
 import CardList from '../components/CardList'
 import SearchBox from '../components/SearchBox'
 import Scroll from "../components/Scroll" 
 import './App.css'
 
-class App extends React.Component {
-	constructor() {
-		super()
-		this.state = {
-			robots: [],
-			searchField: ''
-		}
-	}
+import { setSearchField, requestRobots } from '../actions.js'
 
-	componentDidMount() {
-		fetch('https://jsonplaceholder.typicode.com/users')
-		.then(response => response.json())
-		.then(users => this.setState({ robots: users }))
+const mapStateToProps = state => {
+	return {
+		searchField: state.searchRobots.searchField,
+		robots: state.requestRobots.robots,
+		isPending: state.requestRobots.isPending,
+		error: state.requestRobots.error
 	}
-
-	onSearchChange = (event) => {
-		this.setState({ searchField: event.target.value })
-	}
-
-	render() {
-		const filteredRobots = this.state.robots.filter(robot => {
-			return robot.name.toLowerCase().includes(this.state.searchField.toLowerCase())
-		})
-		return (
-			<div className='appContainer'>
-				<h1>RoboFriends</h1>
-				<SearchBox searchChange={this.onSearchChange} />
-				<Scroll>
-					<CardList robots={filteredRobots}/>
-				</Scroll>
-			</div>
-			)
+}
+// dispatch is what triggers the action
+const mapDispatchToProps = (dispatch) => {
+	return {
+		onSearchChange: (event) => dispatch(setSearchField(event.target.value)),
+		onRequestRobots: () => dispatch(requestRobots())
 	}
 }
 
-export default App
+class App extends React.Component {
+
+	componentDidMount() {
+		this.props.onRequestRobots()
+	}
+
+	render() {
+		const { searchField, onSearchChange, robots, isPending } = this.props
+		const filteredRobots = robots.filter(robot => {
+			return robot.name.toLowerCase().includes(searchField.toLowerCase())
+		})
+		return isPending ?
+			<h1>Loading ...</h1> :
+			(
+				<div className='appContainer'>
+					<h1>RoboFriends</h1>
+					<SearchBox searchChange={onSearchChange} />
+					<Scroll>
+						<CardList robots={filteredRobots}/>
+					</Scroll>
+				</div>
+			)
+	}
+}
+// connect is used for smart components / containers
+// app subscribe to any state changes in redux store
+export default connect(mapStateToProps, mapDispatchToProps)(App)
